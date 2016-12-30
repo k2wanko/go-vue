@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>ToDo</title>
+<div id="app">
+    <input
+      v-model="newTodo"
+      placeholder="Add ToDo"
+      @keyup.enter="addNewTodo">
+    <ul>
+        <li v-for="(item, i) in items">
+            {{item.Title}} <button @click="removeTodo(i)">X</button>
+        </li>
+    </ul>
+</div>
+<script src="https://unpkg.com/vue@2.1.8/dist/vue.min.js"></script>
+<script src="./todo.js"></script>
+<!--
+<script>
+class Item {
+    constructor(title) {
+        this.title = title
+        this.done = false
+    }
+}
+    new Vue({
+        el: "#app",
+        data: function() {
+            return {
+                newTodo: "",
+                items: [new Item("Angel Beats!")],
+            }
+        },
+        methods: {
+            addNewTodo() {
+                this.items.push(new Item(this.newTodo))
+                this.newTodo = ""
+            }
+        }
+    })
+</script>
+-->
