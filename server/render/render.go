@@ -36,28 +36,41 @@ type (
 
 // Read implements io#Reader
 func (r *Renderer) Read(p []byte) (n int, err error) {
-	if r.b != nil {
-		return r.b.Read(p)
-	}
-
-	_, err = r.Render()
-	if err != nil {
-		return
+	if r.b == nil {
+		r.b, err = r.render()
+		if err != nil {
+			return
+		}
 	}
 
 	return r.b.Read(p)
 }
 
-func (r *Renderer) Clear() {
-	r.b = nil
+// Reset reset instance.
+func (r *Renderer) Reset() {
+	if r.b != nil {
+		r.b.Reset()
+	}
 }
 
+// Render returns html bytes.
 func (r *Renderer) Render() (b []byte, err error) {
+	var buf *bytes.Buffer
+	buf, err = r.render()
+	if err != nil {
+		return
+	}
+	b = buf.Bytes()
+	buf.Reset()
+	return
+}
+
+func (r *Renderer) render() (buf *bytes.Buffer, err error) {
 	if r.Path == "" {
 		return nil, errors.New("Path is empty")
 	}
 
-	var buf bytes.Buffer
+	var b bytes.Buffer
 	loop := eventloop.NewEventLoop()
 	loop.Run(func(vm *goja.Runtime) {
 		mr := new(require.Registry)
@@ -92,12 +105,12 @@ func (r *Renderer) Render() (b []byte, err error) {
 		resObj := vm.NewObject()
 		resObj.Set("write", func(c goja.FunctionCall) goja.Value {
 			data := c.Argument(0).String()
-			buf.Write([]byte(data))
+			b.Write([]byte(data))
 			return goja.Undefined()
 		})
 		resObj.Set("end", func(c goja.FunctionCall) goja.Value {
 			data := c.Argument(0).String()
-			buf.Write([]byte(data))
+			b.Write([]byte(data))
 			return goja.Undefined()
 		})
 		resObj.Set("error", func(c goja.FunctionCall) goja.Value {
@@ -138,13 +151,12 @@ func (r *Renderer) Render() (b []byte, err error) {
 		return nil, err
 	}
 
-	r.b = &buf
+	buf = &b
 
-	return r.b.Bytes(), nil
+	return
 }
 
 func applyProcess(vm *goja.Runtime) (err error) {
-
 	process := vm.NewObject()
 	env := vm.NewObject()
 	for _, e := range os.Environ() {
