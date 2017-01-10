@@ -32,7 +32,31 @@ type (
 
 		b *bytes.Buffer
 	}
+
+	RenderError struct {
+		o *goja.Object
+	}
 )
+
+func (e *RenderError) Error() string {
+	if e == nil || e.o == nil {
+		return ""
+	}
+
+	return e.o.String()
+}
+
+func (e *RenderError) Get(name string) interface{} {
+	if e == nil || e.o == nil {
+		return nil
+	}
+
+	if v := e.o.Get(name); v != nil {
+		return v.Export()
+	}
+
+	return nil
+}
 
 // Read implements io#Reader
 func (r *Renderer) Read(p []byte) (n int, err error) {
@@ -88,7 +112,7 @@ func (r *Renderer) render() (buf *bytes.Buffer, err error) {
 		v, err = rm.Require(r.Path)
 
 		if jserr, ok := err.(*goja.Exception); ok {
-			err = errors.New(jserr.Value().String())
+			err = &RenderError{o: jserr.Value().ToObject(vm)}
 			return
 		} else if err != nil {
 			return
@@ -117,7 +141,7 @@ func (r *Renderer) render() (buf *bytes.Buffer, err error) {
 			if len(c.Arguments) == 0 {
 				return goja.Undefined()
 			}
-			err = fmt.Errorf("renderFunc: %#v", c.Argument(0).String())
+			err = &RenderError{o: c.Argument(0).ToObject(vm)}
 			return goja.Undefined()
 		})
 
@@ -138,9 +162,13 @@ func (r *Renderer) render() (buf *bytes.Buffer, err error) {
 			jsCtx.Set(k, v)
 		}
 
-		_, err = renderFunc(nil, jsCtx)
+		var funcErr error
+		_, funcErr = renderFunc(nil, jsCtx)
+		if err == nil {
+			err = funcErr
+		}
 		if jserr, ok := err.(*goja.Exception); ok {
-			err = errors.New(jserr.Value().String())
+			err = &RenderError{o: jserr.Value().ToObject(vm)}
 			return
 		} else if err != nil {
 			return
