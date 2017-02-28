@@ -124,6 +124,17 @@ func (r *Renderer) render() (buf *bytes.Buffer, err error) {
 			return
 		}
 
+		var ctxData map[string]interface{}
+		if r.Data != nil {
+			ctxData = r.Data
+			if v, ok := r.Data["res"]; ok {
+				err = fmt.Errorf("'res' is the reserved name. v = %v", v)
+				return
+			}
+		} else {
+			ctxData = make(map[string]interface{})
+		}
+
 		jsCtx := vm.NewObject()
 
 		resObj := vm.NewObject()
@@ -135,6 +146,11 @@ func (r *Renderer) render() (buf *bytes.Buffer, err error) {
 		resObj.Set("end", func(c goja.FunctionCall) goja.Value {
 			data := c.Argument(0).String()
 			b.Write([]byte(data))
+
+			for k := range ctxData {
+				ctxData[k] = jsCtx.Get(k).Export()
+			}
+
 			return goja.Undefined()
 		})
 		resObj.Set("error", func(c goja.FunctionCall) goja.Value {
@@ -144,17 +160,6 @@ func (r *Renderer) render() (buf *bytes.Buffer, err error) {
 			err = &RenderError{o: c.Argument(0).ToObject(vm)}
 			return goja.Undefined()
 		})
-
-		var ctxData map[string]interface{}
-		if r.Data != nil {
-			ctxData = r.Data
-			if v, ok := r.Data["res"]; ok {
-				err = fmt.Errorf("'res' is the reserved name. v = %v", v)
-				return
-			}
-		} else {
-			ctxData = make(map[string]interface{})
-		}
 
 		ctxData["res"] = resObj
 
