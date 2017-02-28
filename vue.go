@@ -1,5 +1,5 @@
 // Package vue exports explicit bindings for the Vue Javascript Library.
-// Target version 2.1.8
+// Target version 2.2.1
 package vue
 
 import (
