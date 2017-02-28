@@ -16,7 +16,7 @@ var (
 func init() {
 	require := js.Global.Get("require")
 	if js.Undefined != require && jsbuiltin.TypeOf(require) == "function" {
-		vue = require.Invoke("vue")
+		vue = require.Invoke("vue").Get("default")
 	} else {
 		vue = js.Global.Get("Vue")
 	}
