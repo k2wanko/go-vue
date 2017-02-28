@@ -30,7 +30,7 @@ func main() {
 	go func() {
 		for {
 			time.Sleep(1 * time.Second)
-			data.Count = data.Count + 1
+			data.Count++
 		}
 	}()
 }
